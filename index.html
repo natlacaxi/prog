@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>TalcoProg – Éditeur HTML en direct</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="TalcoProg : écrivez du HTML, le résultat s'affiche instantanément.">
+<meta name="theme-color" content="#0e0b1a">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root{--bg:#0e0b1a;--panel:#161226;--panel2:#1d1733;--line:#2e2550;--txt:#ece8ff;--mute:#8d84b5;--v:#8b5cf6;--p:#ec4899;--grad:linear-gradient(135deg,#8b5cf6,#ec4899);--split:50%}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--bg);color:var(--txt);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+.app{height:100%;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:19px;letter-spacing:-.3px;margin-right:auto}
+.logo img{width:30px;height:30px;border-radius:8px;box-shadow:0 0 18px #8b5cf666}
+.logo b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+button{font:inherit;color:var(--txt);cursor:pointer;border:0;background:transparent;border-radius:9px;padding:7px 12px;display:inline-flex;align-items:center;gap:6px;transition:background .15s,transform .1s}
+button:hover{background:var(--panel2)}button:active{transform:scale(.96)}
+button:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.seg button[aria-pressed=true]{background:var(--grad);color:#fff;font-weight:600;box-shadow:0 2px 12px #8b5cf655}
+.act{border:1px solid var(--line);background:var(--bg)}
+.act.hot{background:var(--grad);border-color:transparent;font-weight:600}
+svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+main{flex:1;min-height:0;display:flex;position:relative}
+main[data-dir=col]{flex-direction:column}
+.pane{min-width:0;min-height:0;position:relative;display:flex;background:var(--panel)}
+#codePane{flex:0 0 var(--split)}
+#resPane{flex:1;background:#fff}
+main[data-view=code] #resPane,main[data-view=code] #bar,main[data-view=res] #codePane,main[data-view=res] #bar{display:none}
+main[data-view=code] #codePane,main[data-view=res] #resPane{flex:1}
+#gut{padding:12px 8px 12px 12px;text-align:right;color:var(--mute);font:13px/1.55 ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;overflow:hidden;user-select:none;background:var(--bg);border-right:1px solid var(--line);white-space:pre}
+#code{flex:1;min-width:0;resize:none;border:0;outline:0;background:transparent;color:#e9e4ff;caret-color:var(--p);padding:12px;font:13px/1.55 ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;white-space:pre;overflow:auto;tab-size:2}
+#code::selection{background:#8b5cf666}
+iframe{width:100%;height:100%;border:0;background:#fff}
+#bar{flex:0 0 8px;background:var(--line);cursor:col-resize;position:relative;touch-action:none}
+main[data-dir=col] #bar{cursor:row-resize}
+#bar::after{content:"";position:absolute;inset:0;margin:auto;width:3px;height:36px;border-radius:3px;background:var(--grad)}
+main[data-dir=col] #bar::after{width:36px;height:3px}
+#bar:hover{background:var(--v)}
+main.drag iframe{pointer-events:none}
+footer{display:flex;gap:14px;padding:5px 12px;background:var(--panel);border-top:1px solid var(--line);color:var(--mute);font-size:12px}
+footer .ok{color:#4ade80;margin-left:auto}
+#drop{position:absolute;inset:0;display:none;place-items:center;background:#0e0b1aee;border:3px dashed var(--p);font-size:22px;font-weight:700;z-index:9}
+#drop.on{display:grid}
+#install{display:none}
+@media(max-width:720px){
+ header{gap:6px;padding:6px 8px}.logo{font-size:16px}.logo img{width:26px;height:26px}
+ button .t{display:none}button{padding:8px 10px}
+ #orient{display:none}
+ main{flex-direction:column!important}main #bar{cursor:row-resize}
+ #bar::after{width:36px;height:3px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+ <div class="logo"><img src="icon.svg" alt=""><span>Talco<b>Prog</b></span></div>
+ <div class="seg" role="group" aria-label="Affichage">
+  <button data-v="code" aria-pressed="false" title="Code en plein écran"><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg><span class="t">Code</span></button>
+  <button data-v="split" aria-pressed="true" title="Fenêtre partagée"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg><span class="t">Partagé</span></button>
+  <button data-v="res" aria-pressed="false" title="Résultat en plein écran"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="t">Résultat</span></button>
+ </div>
+ <button class="act" id="orient" title="Côte à côte / empilé"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/></svg><span class="t">Orientation</span></button>
+ <button class="act" id="imp" title="Importer un fichier HTML"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg><span class="t">Importer</span></button>
+ <button class="act hot" id="exp" title="Exporter en .html (Ctrl+S)"><svg viewBox="0 0 24 24"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v3h16v-3"/></svg><span class="t">Exporter</span></button>
+ <button class="act" id="reset" title="Nouvelle page"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="t">Nouveau</span></button>
+ <button class="act" id="fs" title="Plein écran du navigateur"><svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg><span class="t">Plein écran</span></button>
+ <button class="act hot" id="install" title="Installer l'application"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg><span class="t">Installer</span></button>
+</header>
+<main id="main" data-view="split" data-dir="row">
+ <section class="pane" id="codePane"><div id="gut">1</div><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Code HTML"></textarea></section>
+ <div id="bar" role="separator" aria-label="Redimensionner"></div>
+ <section class="pane" id="resPane"><iframe id="out" title="Résultat" sandbox="allow-scripts allow-modals allow-forms allow-popups allow-pointer-lock allow-downloads"></iframe></section>
+ <div id="drop">Déposez votre fichier HTML ici</div>
+</main>
+<footer><span id="st1">1 ligne</span><span id="st2">0 caractère</span><span class="ok" id="st3">Exécuté</span></footer>
+</div>
+<input type="file" id="file" accept=".html,.htm,.txt,text/html,text/plain" hidden>
+<script>
+const $=s=>document.querySelector(s);
+const main=$('#main'),code=$('#code'),gut=$('#gut'),out=$('#out'),KEY='talcoprog:code',VKEY='talcoprog:prefs';
+const DEFAULT=`<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Ma page</title>
+<style>
+  body{font-family:system-ui;display:grid;place-items:center;min-height:100vh;margin:0;background:#1b1035;color:#fff}
+  h1{font-size:3rem;background:linear-gradient(90deg,#8b5cf6,#ec4899);-webkit-background-clip:text;color:transparent}
+  button{padding:.7rem 1.4rem;border:0;border-radius:99px;background:#ec4899;color:#fff;font-size:1rem}
+</style>
+</head>
+<body>
+  <div style="text-align:center">
+    <h1>Bonjour Talco !</h1>
+    <p>Modifiez le code, le résultat change tout de suite.</p>
+    <button onclick="this.textContent='Clics : '+(window.n=(window.n||0)+1)">Clique-moi</button>
+  </div>
+</body>
+</html>`;
+function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
+let prefs={view:'split',dir:'row',split:50};
+try{Object.assign(prefs,JSON.parse(load(VKEY)||'{}'))}catch(e){}
+function savePrefs(){store(VKEY,JSON.stringify(prefs))}
+function applyPrefs(){
+ main.dataset.view=prefs.view;main.dataset.dir=prefs.dir;
+ document.documentElement.style.setProperty('--split',prefs.split+'%');
+ document.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===prefs.view));
+}
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{prefs.view=b.dataset.v;applyPrefs();savePrefs();if(prefs.view==='code')code.focus()});
+$('#orient').onclick=()=>{prefs.dir=prefs.dir==='row'?'col':'row';applyPrefs();savePrefs()};
+let timer;
+function run(){out.srcdoc=code.value;$('#st3').textContent='Exécuté'}
+function stats(){
+ const v=code.value,l=v.split('\n').length;
+ $('#st1').textContent=l+(l>1?' lignes':' ligne');
+ $('#st2').textContent=v.length+(v.length>1?' caractères':' caractère');
+ let n='';for(let i=1;i<=l;i++)n+=i+'\n';gut.textContent=n;gut.scrollTop=code.scrollTop;
+}
+code.addEventListener('input',()=>{stats();$('#st3').textContent='…';clearTimeout(timer);timer=setTimeout(()=>{run();store(KEY,code.value)},180)});
+code.addEventListener('scroll',()=>{gut.scrollTop=code.scrollTop});
+code.addEventListener('keydown',e=>{
+ if(e.key==='Tab'){e.preventDefault();const s=code.selectionStart;code.setRangeText('  ',s,code.selectionEnd,'end');code.dispatchEvent(new Event('input'))}
+});
+function setCode(v){code.value=v;stats();run();store(KEY,v)}
+// Import / export
+$('#imp').onclick=()=>$('#file').click();
+$('#file').onchange=e=>{const f=e.target.files[0];if(f)readFile(f);e.target.value=''};
+function readFile(f){const r=new FileReader();r.onload=()=>setCode(String(r.result));r.readAsText(f)}
+function exportCode(){
+ const m=code.value.match(/<title>([^<]*)<\/title>/i);
+ const name=((m&&m[1].trim())||'talcoprog').replace(/[^\w\-]+/g,'-').toLowerCase()||'talcoprog';
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([code.value],{type:'text/html'}));
+ a.download=name+'.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+$('#exp').onclick=exportCode;
+addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();exportCode()}});
+$('#reset').onclick=()=>{if(confirm('Remplacer le code actuel par une page vide ? Pensez à exporter avant.'))setCode('<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n<title>Nouvelle page</title>\n</head>\n<body>\n\n</body>\n</html>')};
+// Glisser-déposer
+const drop=$('#drop');let dc=0;
+addEventListener('dragenter',e=>{e.preventDefault();dc++;drop.classList.add('on')});
+addEventListener('dragleave',()=>{if(--dc<=0){dc=0;drop.classList.remove('on')}});
+addEventListener('dragover',e=>e.preventDefault());
+addEventListener('drop',e=>{e.preventDefault();dc=0;drop.classList.remove('on');const f=e.dataTransfer.files[0];if(f)readFile(f)});
+// Plein écran
+$('#fs').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else(document.documentElement.requestFullscreen||(()=>{}))().catch(()=>{})};
+if(!document.documentElement.requestFullscreen)$('#fs').style.display='none';
+// Séparateur
+const bar=$('#bar');
+bar.addEventListener('pointerdown',e=>{
+ bar.setPointerCapture(e.pointerId);main.classList.add('drag');
+ const mv=ev=>{
+  const r=main.getBoundingClientRect(),col=getComputedStyle(main).flexDirection==='column';
+  const p=col?(ev.clientY-r.top)/r.height:(ev.clientX-r.left)/r.width;
+  prefs.split=Math.min(85,Math.max(15,Math.round(p*100)));
+  document.documentElement.style.setProperty('--split',prefs.split+'%');
+ };
+ const up=()=>{main.classList.remove('drag');bar.removeEventListener('pointermove',mv);bar.removeEventListener('pointerup',up);savePrefs()};
+ bar.addEventListener('pointermove',mv);bar.addEventListener('pointerup',up);
+});
+// PWA
+let dip;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;$('#install').style.display='inline-flex'});
+$('#install').onclick=async()=>{if(!dip)return;dip.prompt();await dip.userChoice;dip=null;$('#install').style.display='none'};
+addEventListener('appinstalled',()=>{$('#install').style.display='none'});
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
+applyPrefs();
+code.value=load(KEY)||DEFAULT;stats();run();
+</script>
+</body>
+</html>
