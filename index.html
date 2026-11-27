@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>TalcoProg – Éditeur HTML, CSS, JS en direct</title>
+<title>TalcoProg – Éditeur HTML, CSS, JS, Python, C++, Kotlin</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="TalcoProg : écrivez du HTML, CSS et JS, le résultat s'affiche instantanément.">
 <meta name="theme-color" content="#0e0b1a">
@@ -10,13 +10,14 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TalcoProg">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{--bg:#0e0b1a;--panel:#161226;--panel2:#1d1733;--line:#2e2550;--txt:#ece8ff;--mute:#8d84b5;--v:#8b5cf6;--p:#ec4899;--grad:linear-gradient(135deg,#8b5cf6,#ec4899);--split:50%}
 *{box-sizing:border-box;margin:0}
-html,body{height:100%;background:var(--bg);color:var(--txt);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
-.app{height:100%;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+html,body{height:100%;overscroll-behavior:none;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;background:var(--bg);color:var(--txt);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+.app{height:100%;height:100dvh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 header{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:19px;letter-spacing:-.3px;margin-right:auto}
 .logo img{width:30px;height:30px;border-radius:8px;box-shadow:0 0 18px #8b5cf666}
@@ -53,7 +54,7 @@ body.side #side{display:flex}
 .fi:hover{background:var(--panel2)}.fi.on{background:#8b5cf633}
 .fi .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ty{font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--bg);border:1px solid var(--line)}
-.ty.html{color:#fb923c}.ty.css{color:#60a5fa}.ty.js{color:#facc15}
+.ty.html{color:#fb923c}.ty.css{color:#60a5fa}.ty.js{color:#facc15}.ty.py{color:#34d399}.ty.cpp{color:#a78bfa}.ty.kt{color:#f472b6}
 .bl{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:var(--bg)}
 .bh{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .bl p{color:var(--mute);font-size:12px;margin:3px 0 6px}
@@ -103,6 +104,7 @@ footer .ok{color:#4ade80;margin-left:auto}
  .work{flex-direction:column!important}.work #bar{cursor:row-resize}
  #bar::after{width:36px;height:3px}
 }
+@media(pointer:coarse){#code,#gut,#q{font-size:16px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -116,6 +118,7 @@ footer .ok{color:#4ade80;margin-left:auto}
   <button data-v="split" aria-pressed="true" title="Fenêtre partagée"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg><span class="t">Partagé</span></button>
   <button data-v="res" aria-pressed="false" title="Résultat en plein écran"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="t">Résultat</span></button>
  </div>
+ <button class="act hot" id="runb" style="display:none" title="Exécuter (Ctrl+Entrée)"><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg><span class="t">Exécuter</span></button>
  <button class="act" id="orient" title="Côte à côte / empilé"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/></svg><span class="t">Orientation</span></button>
  <button class="act" id="imp" title="Importer .json, .html, .css ou .js"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg><span class="t">Importer</span></button>
  <div class="mwrap"><button class="act hot" id="exp" title="Exporter (Ctrl+S : page .html)"><svg viewBox="0 0 24 24"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v3h16v-3"/></svg><span class="t">Exporter</span></button>
@@ -138,7 +141,7 @@ footer .ok{color:#4ade80;margin-left:auto}
 </div>
 <footer><span id="st0"></span><span id="st1">1 ligne</span><span id="st2">0 caractère</span><span class="ok" id="st3">Exécuté</span></footer>
 </div>
-<input type="file" id="file" accept=".json,.html,.htm,.css,.js,.txt" multiple hidden>
+<input type="file" id="file" multiple hidden>
 <div id="toast" role="status"></div>
 <script src="lib.js"></script>
 <script>
@@ -146,7 +149,7 @@ const $=s=>document.querySelector(s);
 const main=$('#main'),code=$('#code'),gut=$('#gut'),out=$('#out');
 const WS='talcoprog:ws',PK='talcoprog:prefs';
 const uid=()=>Math.random().toString(36).slice(2,9);
-const typeOf=n=>/\.css$/i.test(n)?'css':/\.js$/i.test(n)?'js':'html';
+const typeOf=n=>/\.css$/i.test(n)?'css':/\.js$/i.test(n)?'js':/\.py$/i.test(n)?'py':/\.(cpp|cc|cxx)$/i.test(n)?'cpp':/\.kt$/i.test(n)?'kt':'html';
 const h=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
@@ -173,7 +176,7 @@ function build(f){
  let o=m.content,xc='',xj='';
  const sj=c=>'<script>\n'+c.replace(/<\/script/gi,'<\\/script')+'\n<\/script>';
  f.files.forEach(x=>{
-  const t=typeOf(x.name);if(t==='html')return;
+  const t=typeOf(x.name);if(t!=='css'&&t!=='js')return;
   const n=esc(x.name);
   const re=t==='css'?new RegExp('<link[^>]*href=["\']\\.?\\/?'+n+'["\'][^>]*>','i'):new RegExp('<script[^>]*src=["\']\\.?\\/?'+n+'["\'][^>]*>\\s*<\\/script>','i');
   const rep=t==='css'?'<style>\n'+x.content+'\n</style>':sj(x.content);
@@ -184,7 +187,76 @@ function build(f){
  return o;
 }
 let timer;
-function run(){out.srcdoc=build(cf());$('#st3').textContent='Exécuté'}
+const PROG={py:'Python',cpp:'C++',kt:'Kotlin'};
+const isProg=n=>typeOf(n) in PROG;
+const outs={};let job=null,pyw=null;
+const consoleDoc=(t,o)=>'<!doctype html><meta charset=utf-8><style>body{margin:0;background:#0b0818;color:#e9e4ff;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:14px;white-space:pre-wrap;word-break:break-word}.h{color:#8d84b5;margin-bottom:10px;font-family:system-ui}.e{color:#fb7185}.s{color:#8d84b5}</style><div class=h>'+h(t)+' · '+h(o.state)+'</div>'+o.segs.map(x=>'<span class='+x.c+'>'+h(x.m)+'</span>').join('');
+function showCons(f){const o=outs[f.id]||(outs[f.id]={segs:[],state:'Appuyez sur Exécuter (Ctrl+Entrée)'});out.srcdoc=consoleDoc(PROG[typeOf(f.name)]+' – '+f.name,o);$('#st3').textContent=job?'En cours…':'Prêt'}
+function run(){const f=cfile();if(isProg(f.name))showCons(f);else{out.srcdoc=build(cf());$('#st3').textContent='Exécuté'}}
+const RUN_I='<svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg><span class="t">Exécuter</span>',STOP_I='<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg><span class="t">Arrêter</span>';
+const setRunBtn=on=>{$('#runb').innerHTML=on?STOP_I:RUN_I};
+const PYW=[
+"importScripts('https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js');",
+"let py;",
+"onmessage=async e=>{",
+" try{",
+"  if(!py){postMessage({t:'st',m:'Chargement de Python (première fois : quelques secondes)…'});py=await loadPyodide();py.setStdout({batched:s=>postMessage({t:'o',m:s})});py.setStderr({batched:s=>postMessage({t:'e',m:s})})}",
+"  const L=e.data.lines.slice();py.setStdin({stdin:()=>L.length?L.shift():undefined});",
+"  await py.loadPackagesFromImports(e.data.code);",
+"  await py.runPythonAsync(e.data.code,{globals:py.globals.get('dict')()});",
+" }catch(err){postMessage({t:'e',m:String(err.message||err)})}",
+" postMessage({t:'d'});",
+"};"].join('\n');
+function runPy(code,lines,add){
+ return new Promise(res=>{
+  if(!pyw)pyw=new Worker(URL.createObjectURL(new Blob([PYW],{type:'text/javascript'})));
+  pyw.onmessage=e=>{const d=e.data;if(d.t==='o')add('o',d.m+'\n');else if(d.t==='e')add('e',d.m+'\n');else if(d.t==='st')add('s',d.m+'\n');else if(d.t==='d')res()};
+  pyw.onerror=e=>{add('e','Impossible de charger Python : '+(e.message||'vérifiez la connexion internet')+'\n');pyw=null;res()};
+  pyw.postMessage({code,lines});
+ });
+}
+async function runCpp(code,lines,add,ctl){
+ const post=c=>fetch('https://wandbox.org/api/compile.json',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({compiler:c,code,stdin:lines.join('\n'),'compiler-option-raw':'-std=c++20\n-O1',save:false}),signal:ctl.signal});
+ add('s','Compilation en ligne (Wandbox)…\n');
+ let r=await post('gcc-head');
+ if(!r.ok){const l=await (await fetch('https://wandbox.org/api/list.json',{signal:ctl.signal})).json();const c=l.filter(x=>x.language==='C++'&&/^gcc-\d/.test(x.name)).pop();if(!c)throw new Error('Aucun compilateur C++ disponible');r=await post(c.name)}
+ if(!r.ok)throw new Error('Wandbox a répondu '+r.status);
+ const d=await r.json();
+ if(d.compiler_error)add('e',d.compiler_error);else if(d.compiler_message&&String(d.status)!=='0')add('e',d.compiler_message);
+ if(d.program_output)add('o',d.program_output);
+ if(d.program_error)add('e',d.program_error);
+ add('s','\nCode de sortie : '+(d.status===undefined?'?':d.status)+'\n');
+}
+async function runKt(code,lines,add,ctl){
+ add('s','Compilation en ligne (Kotlin Playground)…\n');
+ let v='1.9.24';
+ try{const vs=await (await fetch('https://api.kotlinlang.org/versions',{signal:ctl.signal})).json();const s=vs.find(x=>x.latestStable)||vs[vs.length-1];if(s&&s.version)v=s.version}catch(e){if(e.name==='AbortError')throw e}
+ const r=await fetch('https://api.kotlinlang.org/api/'+v+'/compiler/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({args:'',files:[{name:'File.kt',text:code}]}),signal:ctl.signal});
+ if(!r.ok)throw new Error('Kotlin Playground a répondu '+r.status);
+ const d=await r.json();
+ Object.values(d.errors||{}).flat().filter(x=>x.severity==='ERROR').forEach(x=>add('e',(x.interval?'ligne '+(x.interval.start.line+1)+' : ':'')+x.message+'\n'));
+ const tx=document.createElement('textarea'),dec=z=>{tx.innerHTML=z;return tx.value};
+ (d.text||'').split(/(<(?:out|err)Stream>[\s\S]*?<\/(?:out|err)Stream>)/).forEach(p=>{if(!p)return;add(p.startsWith('<errStream>')?'e':'o',dec(p.replace(/<\/?(?:out|err)Stream>/g,'')))});
+ if(d.exception)add('e',d.exception.fullName+': '+(d.exception.message||'')+'\n');
+}
+async function execute(){
+ const f=cfile(),t=typeOf(f.name);
+ if(!isProg(f.name))return;
+ if(job){job.stop();return}
+ const o=outs[f.id]={segs:[],state:'En cours…'},ctl=new AbortController();
+ const add=(c,m)=>{o.segs.push({c,m});if(cfile()===f)showCons(f)};
+ const done=z=>{o.state=z;job=null;setRunBtn(false);if(cfile()===f)showCons(f)};
+ job={stop:()=>{ctl.abort();if(pyw){pyw.terminate();pyw=null}done('Arrêté')}};
+ setRunBtn(true);showCons(f);
+ try{
+  let lines=[];
+  if((t==='py'||t==='cpp')&&/input\s*\(|\bcin\b|scanf|getline/.test(f.content)){const z=prompt('Ce programme lit des entrées. Tapez-les séparées par ; (une par ligne)','');if(z===null){done('Annulé');return}lines=z.split(';')}
+  await (t==='py'?runPy:t==='cpp'?runCpp:runKt)(f.content,lines,add,ctl);
+  if(job)done('Terminé');
+ }catch(e){if(e.name==='AbortError')return;add('e','\nErreur : '+e.message+(/fetch|network|load/i.test(e.message)?' (vérifiez la connexion internet)':'')+'\n');if(job)done('Échec')}
+}
+$('#runb').onclick=execute;
+addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();execute()}});
 function stats(){
  const v=code.value,l=v.split('\n').length;
  $('#st0').textContent=cf().name+' / '+cfile().name;
@@ -199,6 +271,7 @@ code.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();code.se
 function openFile(f,i){ws.cur={f,i};code.value=cfile().content;stats();renderTabs();renderList();persist();run()}
 function renderTabs(){
  const f=cf(),c=cfile();
+ $('#runb').style.display=isProg(c.name)?'inline-flex':'none';
  $('#tabs').innerHTML=f.files.map(x=>`<button class="tab ${x.id===c.id?'on':''}" data-i="${x.id}">${h(x.name)}<i data-del="${x.id}" title="Supprimer">×</i></button>`).join('')+'<button class="tab" data-new="1" title="Nouveau fichier">+</button>';
 }
 $('#tabs').onclick=e=>{
@@ -208,8 +281,8 @@ $('#tabs').onclick=e=>{
 };
 function askName(msg,def){let n=prompt(msg,def);if(!n)return null;n=n.trim().replace(/[\\/]/g,'-');return n||null}
 function addFile(fid){
- const F=ws.folders.find(x=>x.id===fid);let n=askName('Nom du fichier (ex. page.html, style2.css, outils.js)','nouveau.html');if(!n)return;
- if(!/\.(html?|css|js)$/i.test(n))n+='.html';
+ const F=ws.folders.find(x=>x.id===fid);let n=askName('Nom du fichier (ex. page.html, style2.css, main.py, main.cpp, main.kt)','nouveau.html');if(!n)return;
+ if(!/\.(html?|css|js|py|cpp|cc|cxx|kt)$/i.test(n))n+='.html';
  if(F.files.some(x=>x.name===n)){alert('Ce nom existe déjà dans ce dossier.');return}
  const x={id:uid(),name:n,content:''};F.files.push(x);F.open=true;openFile(F.id,x.id);
 }
@@ -236,7 +309,7 @@ function renderList(){
  const ok=(o,x)=>(P.lvl<0||o.l===P.lvl)&&(!q||(o.n+' '+(o.d||'')+' '+x).toLowerCase().includes(q));
  const none='<p class="hint">Aucun résultat.</p>';
  L.innerHTML=P.tab==='lib'
-  ?LIB.map((s,n)=>ok(s,s.t+' '+s.c)?`<div class="bl"><div class="bh"><b>${h(s.n)}</b><em class="lv l${s.l}">${LV[s.l]}</em></div><p>${h(s.d)}</p><pre>${h(s.c)}</pre><div class="br"><span class="ty ${s.t}">${s.t}</span><button class="act" data-a="ins" data-k="${n}">Insérer</button><button class="act" data-a="cp" data-k="${n}">Copier</button></div></div>`:'').join('')||none
+  ?LIB.map((s,n)=>ok(s,s.t+' '+(LN[s.t]||'')+' '+s.c)?`<div class="bl"><div class="bh"><b>${h(s.n)}</b><em class="lv l${s.l}">${LV[s.l]}</em></div><p>${h(s.d)}</p><pre>${h(s.c)}</pre><div class="br"><span class="ty ${s.t}">${s.t}</span><button class="act" data-a="ins" data-k="${n}">Insérer</button><button class="act" data-a="cp" data-k="${n}">Copier</button></div></div>`:'').join('')||none
   :GUIDES.map(g=>ok(g,g.b.replace(/<[^>]+>/g,' '))?`<details class="gd"><summary><em class="lv l${g.l}">${LV[g.l]}</em> ${h(g.n)}</summary><div>${g.b}</div></details>`:'').join('')||none;
 }
 $('#list').onclick=e=>{
@@ -259,7 +332,7 @@ function insertSnippet(n){
  const s=LIB[n],F=cf();
  if(typeOf(cfile().name)!==s.t){
   let g=F.files.find(x=>typeOf(x.name)===s.t);
-  if(!g){g={id:uid(),name:{html:'index.html',css:'style.css',js:'script.js'}[s.t],content:''};F.files.push(g)}
+  if(!g){g={id:uid(),name:{html:'index.html',css:'style.css',js:'script.js',py:'main.py',cpp:'main.cpp',kt:'main.kt'}[s.t],content:''};F.files.push(g)}
   openFile(F.id,g.id);
  }
  if(P.view==='res'){P.view='split';applyP()}
@@ -299,7 +372,8 @@ function dl(name,text,type){const a=document.createElement('a');a.href=URL.creat
 const slug=s=>(s||'').trim().replace(/[^\w\-]+/g,'-').replace(/^-+|-+$/g,'').toLowerCase();
 function doExport(k){
  const F=cf();
- if(k==='html'){const o=build(F),m=o.match(/<title>([^<]*)<\/title>/i);dl((slug(m&&m[1])||slug(F.name)||'talcoprog')+'.html',o,'text/html')}
+ if(k==='html'&&isProg(cfile().name)){const x=cfile();dl(x.name,x.content,'text/plain')}
+ else if(k==='html'){const o=build(F),m=o.match(/<title>([^<]*)<\/title>/i);dl((slug(m&&m[1])||slug(F.name)||'talcoprog')+'.html',o,'text/html')}
  else if(k==='fjson')dl((slug(F.name)||'dossier')+'.json',JSON.stringify({app:'TalcoProg',version:1,folders:[F]},null,2),'application/json');
  else dl('talcoprog-sauvegarde.json',JSON.stringify({app:'TalcoProg',version:1,folders:ws.folders},null,2),'application/json');
  toast('Export prêt');
@@ -319,12 +393,12 @@ function importFiles(list){
      if(!fl)throw 0;
      fl.forEach(x=>{if(!x||!Array.isArray(x.files)||!x.files.length)return;const nf={id:uid(),name:String(x.name||'Importé'),open:true,files:x.files.map(y=>({id:uid(),name:String(y.name||'fichier.html'),content:String(y.content||'')}))};ws.folders.push(nf);last=nf});
      toast('Dossiers importés')}catch(e){alert('Fichier .json non reconnu : '+n);return}
-   }else if(/\.(css|js)$/i.test(n)){
+   }else if(/\.(css|js|py|cpp|cc|cxx|kt)$/i.test(n)){
     const F=cf();let nm=n;if(F.files.some(x=>x.name===nm))nm=uid().slice(0,3)+'-'+nm;
     const x={id:uid(),name:nm,content:txt};F.files.push(x);last={id:F.id,files:[x]};toast(nm+' ajouté')
-   }else{
+   }else if(/\.(html?|txt)$/i.test(n)){
     const nf={id:uid(),name:n.replace(/\.[^.]+$/,'')||'Importé',open:true,files:[{id:uid(),name:'index.html',content:txt}]};ws.folders.push(nf);last=nf;toast('Page importée')
-   }
+   }else{toast('Type de fichier non pris en charge : '+n);return}
    if(last)openFile(last.id,last.files[0].id);
   };
   r.readAsText(f);
@@ -340,7 +414,9 @@ addEventListener('drop',e=>{e.preventDefault();dc=0;drop.classList.remove('on');
 // ---- PWA
 let dip;
 addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;$('#install').style.display='inline-flex'});
-$('#install').onclick=async()=>{if(!dip)return;dip.prompt();await dip.userChoice;dip=null;$('#install').style.display='none'};
+const IOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+if(IOS&&!navigator.standalone)$('#install').style.display='inline-flex';
+$('#install').onclick=async()=>{if(!dip){if(IOS)alert('Sur iPhone et iPad : touche le bouton Partager de Safari, puis « Sur l\'écran d\'accueil ».');return}dip.prompt();await dip.userChoice;dip=null;$('#install').style.display='none'};
 addEventListener('appinstalled',()=>{$('#install').style.display='none'});
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
 // ---- Démarrage

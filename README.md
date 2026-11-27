@@ -1,6 +1,6 @@
 # TalcoProg
 
-Éditeur HTML, CSS et JS avec exécution instantanée : code, résultat, ou fenêtre partagée.
+Éditeur HTML, CSS et JS avec exécution instantanée (code, résultat ou fenêtre partagée), plus Python (dans le navigateur), C++ et Kotlin (compilés en ligne).
 
 - Dossiers de projet avec plusieurs fichiers (.html, .css, .js), sauvegardés dans le navigateur
 - Bibliothèque de blocs de code et guides, du débutant au confirmé
