@@ -54,7 +54,7 @@ body.side #side{display:flex}
 .fi:hover{background:var(--panel2)}.fi.on{background:#8b5cf633}
 .fi .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ty{font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--bg);border:1px solid var(--line)}
-.ty.html{color:#fb923c}.ty.css{color:#60a5fa}.ty.js{color:#facc15}.ty.py{color:#34d399}.ty.cpp{color:#a78bfa}.ty.kt{color:#f472b6}
+.ty.html{color:#fb923c}.ty.css{color:#60a5fa}.ty.js{color:#facc15}.ty.py{color:#34d399}.ty.cpp{color:#a78bfa}.ty.kt{color:#f472b6}.ty.jsx{color:#22d3ee}
 .bl{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:var(--bg)}
 .bh{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .bl p{color:var(--mute);font-size:12px;margin:3px 0 6px}
@@ -66,7 +66,9 @@ body.side #side{display:flex}
 .gd{border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--bg)}
 .gd summary{padding:10px;cursor:pointer;font-weight:600}
 .gd>div{padding:0 12px 10px;color:#cfc8f5;font-size:13px}
-.gd p,.gd ul{margin:6px 0}.gd ul{padding-left:18px}.gd code{background:var(--panel2);padding:1px 5px;border-radius:5px}
+.gd p,.gd ul,.gd ol{margin:6px 0}.gd ol{padding-left:18px}.gd>div{overflow-x:auto}.gd table{border-collapse:collapse;width:100%;font-size:12px;margin:6px 0}.gd td,.gd th{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}.gd th{background:var(--panel2)}
+.how{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}.how summary{cursor:pointer;color:#c4b5fd;font-weight:600;font-size:12px}.how div{color:#cfc8f5;font-size:12px;margin-top:6px}.how code{background:var(--panel2);padding:1px 4px;border-radius:5px}
+.danger{color:#fb7185;border-color:#fb718555}.gd ul{padding-left:18px}.gd code{background:var(--panel2);padding:1px 5px;border-radius:5px}
 .work{flex:1;min-width:0;display:flex;position:relative}
 .work[data-dir=col]{flex-direction:column}
 .pane{min-width:0;min-height:0;position:relative;display:flex;background:var(--panel)}
@@ -149,13 +151,20 @@ const $=s=>document.querySelector(s);
 const main=$('#main'),code=$('#code'),gut=$('#gut'),out=$('#out');
 const WS='talcoprog:ws',PK='talcoprog:prefs';
 const uid=()=>Math.random().toString(36).slice(2,9);
-const typeOf=n=>/\.css$/i.test(n)?'css':/\.js$/i.test(n)?'js':/\.py$/i.test(n)?'py':/\.(cpp|cc|cxx)$/i.test(n)?'cpp':/\.kt$/i.test(n)?'kt':'html';
+const typeOf=n=>/\.css$/i.test(n)?'css':/\.js$/i.test(n)?'js':/\.py$/i.test(n)?'py':/\.(cpp|cc|cxx)$/i.test(n)?'cpp':/\.kt$/i.test(n)?'kt':/\.jsx$/i.test(n)?'jsx':'html';
 const h=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2200)}
 function newFolder(name){return{id:uid(),name,open:true,files:[{id:uid(),name:'index.html',content:TPL.html},{id:uid(),name:'style.css',content:TPL.css},{id:uid(),name:'script.js',content:TPL.js}]}}
+function newReact(name){return{id:uid(),name,open:true,files:[{id:uid(),name:'index.html',content:TPL.rhtml},{id:uid(),name:'App.jsx',content:TPL.jsx}]}}
+function resetAll(){
+ if(!confirm('Tout réinitialiser ? Tous vos dossiers et fichiers seront supprimés (pensez à exporter avant).'))return;
+ const f=newFolder('Mon premier projet');ws={folders:[f],cur:{f:f.id,i:f.files[0].id}};
+ for(const k in outs)delete outs[k];
+ openFile(f.id,f.files[0].id);toast('Tout a été réinitialisé');
+}
 // ---- État
 let ws=null;
 try{const d=JSON.parse(load(WS)||'null');if(d&&Array.isArray(d.folders)&&d.folders.length)ws=d}catch(e){}
@@ -169,19 +178,24 @@ const persist=()=>store(WS,JSON.stringify(ws));
 const cf=()=>ws.folders.find(x=>x.id===ws.cur.f)||(ws.cur.f=ws.folders[0].id,ws.folders[0]);
 const cfile=()=>cf().files.find(x=>x.id===ws.cur.i)||(ws.cur.i=cf().files[0].id,cf().files[0]);
 // ---- Assemblage de la page
-function build(f){
+const RL='<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.development.js"><\/script>\n<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.development.js"><\/script>\n<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.4/babel.min.js"><\/script>\n';
+const ERRJS='<script>addEventListener("error",function(e){var d=document.getElementById("__e");if(!d){d=document.createElement("pre");d.id="__e";d.style.cssText="position:fixed;left:0;right:0;bottom:0;margin:0;padding:10px;background:#7f1d1d;color:#fff;font:12px/1.4 monospace;white-space:pre-wrap;z-index:99999";(document.body||document.documentElement).appendChild(d)}d.textContent="Erreur : "+e.message+(e.lineno?" (ligne "+e.lineno+")":"")});<\/script>\n';
+function build(f,pv){
  const hs=f.files.filter(x=>typeOf(x.name)==='html');
  const m=hs.find(x=>x.name==='index.html')||hs[0];
  if(!m)return '<body style="font-family:system-ui;padding:2rem">Ajoutez un fichier .html dans ce dossier.</body>';
- let o=m.content,xc='',xj='';
+ let o=m.content,xc='',xj='',jx=false;
  const sj=c=>'<script>\n'+c.replace(/<\/script/gi,'<\\/script')+'\n<\/script>';
  f.files.forEach(x=>{
-  const t=typeOf(x.name);if(t!=='css'&&t!=='js')return;
+  const t=typeOf(x.name);if(t!=='css'&&t!=='js'&&t!=='jsx')return;
   const n=esc(x.name);
   const re=t==='css'?new RegExp('<link[^>]*href=["\']\\.?\\/?'+n+'["\'][^>]*>','i'):new RegExp('<script[^>]*src=["\']\\.?\\/?'+n+'["\'][^>]*>\\s*<\\/script>','i');
-  const rep=t==='css'?'<style>\n'+x.content+'\n</style>':sj(x.content);
+  const rep=t==='css'?'<style>\n'+x.content+'\n</style>':t==='jsx'?(jx=true,'<script type="text/babel" data-presets="react">\n'+x.content.replace(/<\/script/gi,'<\\/script')+'\n<\/script>'):sj(x.content);
   if(re.test(o))o=o.replace(re,()=>rep);else if(t==='css')xc+=rep+'\n';else xj+=rep+'\n';
  });
+ if((jx||/type=["']text\/babel/i.test(o))&&!/react(\.development|\.production|@)/.test(o))xc=RL+xc;
+ if(jx&&!/id=["']root["']/.test(o))o=/<body[^>]*>/i.test(o)?o.replace(/<body[^>]*>/i,z=>z+'\n<div id="root"></div>'):'<div id="root"></div>\n'+o;
+ if(pv)xc=ERRJS+xc;
  if(xc)o=/<\/head>/i.test(o)?o.replace(/<\/head>/i,()=>xc+'</head>'):xc+o;
  if(xj)o=/<\/body>/i.test(o)?o.replace(/<\/body>/i,()=>xj+'</body>'):o+xj;
  return o;
@@ -192,7 +206,7 @@ const isProg=n=>typeOf(n) in PROG;
 const outs={};let job=null,pyw=null;
 const consoleDoc=(t,o)=>'<!doctype html><meta charset=utf-8><style>body{margin:0;background:#0b0818;color:#e9e4ff;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:14px;white-space:pre-wrap;word-break:break-word}.h{color:#8d84b5;margin-bottom:10px;font-family:system-ui}.e{color:#fb7185}.s{color:#8d84b5}</style><div class=h>'+h(t)+' · '+h(o.state)+'</div>'+o.segs.map(x=>'<span class='+x.c+'>'+h(x.m)+'</span>').join('');
 function showCons(f){const o=outs[f.id]||(outs[f.id]={segs:[],state:'Appuyez sur Exécuter (Ctrl+Entrée)'});out.srcdoc=consoleDoc(PROG[typeOf(f.name)]+' – '+f.name,o);$('#st3').textContent=job?'En cours…':'Prêt'}
-function run(){const f=cfile();if(isProg(f.name))showCons(f);else{out.srcdoc=build(cf());$('#st3').textContent='Exécuté'}}
+function run(){const f=cfile();if(isProg(f.name))showCons(f);else{out.srcdoc=build(cf(),true);$('#st3').textContent='Exécuté'}}
 const RUN_I='<svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg><span class="t">Exécuter</span>',STOP_I='<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg><span class="t">Arrêter</span>';
 const setRunBtn=on=>{$('#runb').innerHTML=on?STOP_I:RUN_I};
 const PYW=[
@@ -281,8 +295,8 @@ $('#tabs').onclick=e=>{
 };
 function askName(msg,def){let n=prompt(msg,def);if(!n)return null;n=n.trim().replace(/[\\/]/g,'-');return n||null}
 function addFile(fid){
- const F=ws.folders.find(x=>x.id===fid);let n=askName('Nom du fichier (ex. page.html, style2.css, main.py, main.cpp, main.kt)','nouveau.html');if(!n)return;
- if(!/\.(html?|css|js|py|cpp|cc|cxx|kt)$/i.test(n))n+='.html';
+ const F=ws.folders.find(x=>x.id===fid);let n=askName('Nom du fichier (ex. page.html, style2.css, App.jsx, main.py, main.cpp, main.kt)','nouveau.html');if(!n)return;
+ if(!/\.(html?|css|jsx?|py|cpp|cc|cxx|kt)$/i.test(n))n+='.html';
  if(F.files.some(x=>x.name===n)){alert('Ce nom existe déjà dans ce dossier.');return}
  const x={id:uid(),name:n,content:''};F.files.push(x);F.open=true;openFile(F.id,x.id);
 }
@@ -302,14 +316,14 @@ function renderList(){
  const L=$('#list');
  if(P.tab==='files'){
   L.innerHTML=ws.folders.map(F=>`<div class="fold"><div class="fh"><span data-a="tog" data-f="${F.id}">${F.open?'▾':'▸'} ${h(F.name)}</span><button class="ib" data-a="nf" data-f="${F.id}" title="Nouveau fichier">+</button><button class="ib" data-a="rf" data-f="${F.id}" title="Renommer le dossier">✎</button><button class="ib" data-a="df" data-f="${F.id}" title="Supprimer le dossier">×</button></div>${F.open?F.files.map(x=>`<div class="fi ${x.id===ws.cur.i?'on':''}" data-a="op" data-f="${F.id}" data-i="${x.id}"><span class="ty ${typeOf(x.name)}">${typeOf(x.name)}</span><span class="nm">${h(x.name)}</span><button class="ib" data-a="ri" data-f="${F.id}" data-i="${x.id}" title="Renommer">✎</button><button class="ib" data-a="di" data-f="${F.id}" data-i="${x.id}" title="Supprimer">×</button></div>`).join(''):''}</div>`).join('')
-  +'<button class="act wide" data-a="nd">+ Nouveau dossier</button><p class="hint">Tout est enregistré automatiquement dans ce navigateur. Exportez en .json pour sauvegarder ou changer d\'appareil.</p>';
+  +'<button class="act wide" data-a="nd">+ Nouveau dossier</button><button class="act wide danger" data-a="reset" style="margin-top:8px">Tout réinitialiser</button><p class="hint">Tout est enregistré automatiquement dans ce navigateur. Exportez en .json pour sauvegarder ou changer d\'appareil.</p>';
   return;
  }
  const q=P.q.toLowerCase();
  const ok=(o,x)=>(P.lvl<0||o.l===P.lvl)&&(!q||(o.n+' '+(o.d||'')+' '+x).toLowerCase().includes(q));
  const none='<p class="hint">Aucun résultat.</p>';
  L.innerHTML=P.tab==='lib'
-  ?LIB.map((s,n)=>ok(s,s.t+' '+(LN[s.t]||'')+' '+s.c)?`<div class="bl"><div class="bh"><b>${h(s.n)}</b><em class="lv l${s.l}">${LV[s.l]}</em></div><p>${h(s.d)}</p><pre>${h(s.c)}</pre><div class="br"><span class="ty ${s.t}">${s.t}</span><button class="act" data-a="ins" data-k="${n}">Insérer</button><button class="act" data-a="cp" data-k="${n}">Copier</button></div></div>`:'').join('')||none
+  ?LIB.map((s,n)=>ok(s,s.t+' '+(LN[s.t]||'')+' '+s.c+' '+(s.x||'').replace(/<[^>]+>/g,' '))?`<div class="bl"><div class="bh"><b>${h(s.n)}</b><em class="lv l${s.l}">${LV[s.l]}</em></div><p>${h(s.d)}</p><pre>${h(s.c)}</pre>${s.x?`<details class="how"><summary>Comment ça marche ?</summary><div>${s.x}</div></details>`:''}<div class="br"><span class="ty ${s.t}">${s.t}</span><button class="act" data-a="ins" data-k="${n}">Insérer</button><button class="act" data-a="cp" data-k="${n}">Copier</button></div></div>`:'').join('')||none
   :GUIDES.map(g=>ok(g,g.b.replace(/<[^>]+>/g,' '))?`<details class="gd"><summary><em class="lv l${g.l}">${LV[g.l]}</em> ${h(g.n)}</summary><div>${g.b}</div></details>`:'').join('')||none;
 }
 $('#list').onclick=e=>{
@@ -324,7 +338,8 @@ $('#list').onclick=e=>{
   ws.folders=ws.folders.filter(x=>x.id!==f);if(ws.cur.f===f)ws.cur={f:ws.folders[0].id,i:ws.folders[0].files[0].id};openFile(ws.cur.f,ws.cur.i)}
  else if(a==='ri'){const x=F.files.find(y=>y.id===i),n=askName('Nom du fichier',x.name);if(n){if(F.files.some(y=>y.name===n&&y!==x)){alert('Ce nom existe déjà.');return}x.name=n;renderTabs();renderList();stats();persist();run()}}
  else if(a==='di')delFile(f,i);
- else if(a==='nd'){const n=askName('Nom du dossier','Nouveau projet');if(n){const d=newFolder(n);ws.folders.push(d);openFile(d.id,d.files[0].id)}}
+ else if(a==='nd'){const n=askName('Nom du dossier','Nouveau projet');if(n){const d=confirm('Projet React ? OK = React (JSX), Annuler = HTML / CSS / JS classique')?newReact(n):newFolder(n);ws.folders.push(d);openFile(d.id,d.files[0].id)}}
+ else if(a==='reset')resetAll();
  else if(a==='ins')insertSnippet(+k);
  else if(a==='cp'){navigator.clipboard&&navigator.clipboard.writeText(LIB[+k].c).then(()=>toast('Code copié')).catch(()=>toast('Copie impossible'))}
 };
@@ -332,7 +347,7 @@ function insertSnippet(n){
  const s=LIB[n],F=cf();
  if(typeOf(cfile().name)!==s.t){
   let g=F.files.find(x=>typeOf(x.name)===s.t);
-  if(!g){g={id:uid(),name:{html:'index.html',css:'style.css',js:'script.js',py:'main.py',cpp:'main.cpp',kt:'main.kt'}[s.t],content:''};F.files.push(g)}
+  if(!g){g={id:uid(),name:{html:'index.html',css:'style.css',js:'script.js',jsx:'App.jsx',py:'main.py',cpp:'main.cpp',kt:'main.kt'}[s.t],content:''};F.files.push(g)}
   openFile(F.id,g.id);
  }
  if(P.view==='res'){P.view='split';applyP()}
@@ -393,7 +408,7 @@ function importFiles(list){
      if(!fl)throw 0;
      fl.forEach(x=>{if(!x||!Array.isArray(x.files)||!x.files.length)return;const nf={id:uid(),name:String(x.name||'Importé'),open:true,files:x.files.map(y=>({id:uid(),name:String(y.name||'fichier.html'),content:String(y.content||'')}))};ws.folders.push(nf);last=nf});
      toast('Dossiers importés')}catch(e){alert('Fichier .json non reconnu : '+n);return}
-   }else if(/\.(css|js|py|cpp|cc|cxx|kt)$/i.test(n)){
+   }else if(/\.(css|jsx?|py|cpp|cc|cxx|kt)$/i.test(n)){
     const F=cf();let nm=n;if(F.files.some(x=>x.name===nm))nm=uid().slice(0,3)+'-'+nm;
     const x={id:uid(),name:nm,content:txt};F.files.push(x);last={id:F.id,files:[x]};toast(nm+' ajouté')
    }else if(/\.(html?|txt)$/i.test(n)){
